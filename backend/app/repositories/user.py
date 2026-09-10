@@ -1,9 +1,16 @@
 import uuid
+from dataclasses import dataclass
 
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
+
+
+@dataclass
+class SearchResult:
+    items: list[User]
+    total: int
 
 
 class UserRepository:
@@ -26,6 +33,28 @@ class UserRepository:
             select(User).where((User.email == email) | (User.username == username))
         )
         return result.scalar_one_or_none()
+
+
+    async def search(
+        self, query: str, limit: int = 20, offset: int = 0
+    ) -> SearchResult:
+        pattern = f"%{query}%"
+        where = or_(
+            User.username.ilike(pattern),
+            User.email.ilike(pattern),
+        )
+
+        count_result = await self.db.execute(
+            select(func.count()).select_from(User).where(where)
+        )
+        total = count_result.scalar_one()
+
+        items_result = await self.db.execute(
+            select(User).where(where).order_by(User.username).limit(limit).offset(offset)
+        )
+        items = list(items_result.scalars().all())
+
+        return SearchResult(items=items, total=total)
 
 
     async def create(self, email: str, username: str, hashed_password: str) -> User:
