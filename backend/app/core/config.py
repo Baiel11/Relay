@@ -13,6 +13,10 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = 15
     refresh_token_expire_days: int = 7
 
+    refresh_cookie_name: str = "refresh_token"
+    refresh_cookie_path: str = "/api/v1/auth/refresh"
+    cookie_samesite: str = "lax"
+
     app_name: str = "Relay"
     debug: bool = False
 
