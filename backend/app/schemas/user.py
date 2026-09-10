@@ -18,3 +18,10 @@ class UserBrief(BaseModel):
     username: str
 
     model_config = {"from_attributes": True}
+
+
+class UserSearchResponse(BaseModel):
+    results: list[UserBrief]
+    total: int
+    limit: int
+    offset: int
