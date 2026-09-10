@@ -17,20 +17,23 @@ class AuthService:
         self.user_repo = user_repo
 
 
+    @staticmethod
+    def _parse_user_id(payload: dict) -> uuid.UUID:
+        raw = payload.get("sub")
+        if raw is None:
+            raise UnauthorizedException(detail="Invalid token payload")
+        try:
+            return uuid.UUID(str(raw))
+        except ValueError:
+            raise UnauthorizedException(detail="Invalid token payload")
+
+
     async def get_current_user(self, token: str) -> User:
         payload = decode_token(token, token_type="access")
         if payload is None:
             raise UnauthorizedException(detail="Invalid or expired token")
 
-        user_id_raw = payload.get("sub")
-        if user_id_raw is None:
-            raise UnauthorizedException(detail="Invalid token payload")
-
-        try:
-            user_id = uuid.UUID(str(user_id_raw))
-        except ValueError:
-            raise UnauthorizedException(detail="Invalid token payload")
-
+        user_id = self._parse_user_id(payload)
         user = await self.user_repo.get_by_id(user_id)
         if user is None:
             raise UnauthorizedException(detail="User not found")
@@ -60,15 +63,7 @@ class AuthService:
         if payload is None:
             raise UnauthorizedException(detail="Invalid or expired refresh token")
 
-        user_id_raw = payload.get("sub")
-        if user_id_raw is None:
-            raise UnauthorizedException(detail="Invalid token payload")
-
-        try:
-            user_id = uuid.UUID(str(user_id_raw))
-        except ValueError:
-            raise UnauthorizedException(detail="Invalid token payload")
-
+        user_id = self._parse_user_id(payload)
         user = await self.user_repo.get_by_id(user_id)
         if not user:
             raise UnauthorizedException(detail="User not found")
