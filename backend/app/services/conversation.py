@@ -4,7 +4,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.exceptions import BadRequestException, ForbiddenException, NotFoundException
 from app.models.conversation import Conversation
-from app.repositories.conversation import ConversationRepository, PagedResult
+from app.repositories import PagedResult
+from app.repositories.conversation import ConversationRepository
 from app.repositories.user import UserRepository
 from app.schemas.conversation import ConversationListResponse, ConversationResponse
 from app.schemas.user import UserBrief
