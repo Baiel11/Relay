@@ -1,16 +1,10 @@
 import uuid
-from dataclasses import dataclass
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
-
-
-@dataclass
-class SearchResult:
-    items: list[User]
-    total: int
+from app.repositories import PagedResult
 
 
 class UserRepository:
@@ -37,7 +31,7 @@ class UserRepository:
 
     async def search(
         self, query: str, limit: int = 20, offset: int = 0
-    ) -> SearchResult:
+    ) -> PagedResult[User]:
         pattern = f"%{query}%"
         where = or_(
             User.username.ilike(pattern),
@@ -54,7 +48,7 @@ class UserRepository:
         )
         items = list(items_result.scalars().all())
 
-        return SearchResult(items=items, total=total)
+        return PagedResult(items=items, total=total)
 
 
     async def create(self, email: str, username: str, hashed_password: str) -> User:
