@@ -1,19 +1,10 @@
 import uuid
-from dataclasses import dataclass
-from typing import Generic, TypeVar
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.conversation import Conversation
-
-T = TypeVar("T")
-
-
-@dataclass
-class PagedResult(Generic[T]):
-    items: list[T]
-    total: int
+from app.repositories import PagedResult
 
 
 class ConversationRepository:
