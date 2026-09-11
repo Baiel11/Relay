@@ -38,8 +38,8 @@ docker-compose.override.yml
 Thumbs.db
 
 # Alembic
-backend/alembic/versions/*.py
-!backend/alembic/versions/.gitkeep
+# (Migration versions are tracked in git)
+
 
 # Test
 .coverage
