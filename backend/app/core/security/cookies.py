@@ -4,8 +4,6 @@ from app.core.config import get_settings
 
 settings = get_settings()
 
-SECURE_COOKIES = not settings.debug
-
 
 def set_refresh_cookie(response: Response, token: str) -> None:
     response.set_cookie(
@@ -14,7 +12,7 @@ def set_refresh_cookie(response: Response, token: str) -> None:
         max_age=settings.refresh_token_expire_days * 24 * 60 * 60,
         path=settings.refresh_cookie_path,
         httponly=True,
-        secure=SECURE_COOKIES,
+        secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
     )
 
@@ -24,7 +22,7 @@ def clear_refresh_cookie(response: Response) -> None:
         key=settings.refresh_cookie_name,
         path=settings.refresh_cookie_path,
         httponly=True,
-        secure=SECURE_COOKIES,
+        secure=settings.cookie_secure,
         samesite=settings.cookie_samesite,
     )
 
