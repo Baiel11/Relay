@@ -1,39 +1,46 @@
 import uuid
 from datetime import datetime, timedelta, timezone
 
-from jose import JWTError, jwt
+import jwt
+from jwt.exceptions import InvalidTokenError
 
 from app.core.config import get_settings
 
 settings = get_settings()
 
 
-def create_access_token(subject: str) -> str:
+def create_access_token(subject: str) -> tuple[str, str]:
+    """Return (encoded_token, jti)."""
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=settings.access_token_expire_minutes)
+    jti = str(uuid.uuid4())
     payload = {
         "sub": subject,
-        "jti": str(uuid.uuid4()),
+        "jti": jti,
         "iat": int(now.timestamp()),
         "exp": expire,
         "type": "access",
     }
-    return jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return token, jti
 
 
-def create_refresh_token(subject: str) -> str:
+def create_refresh_token(subject: str) -> tuple[str, str]:
+    """Return (encoded_token, jti)."""
     now = datetime.now(timezone.utc)
     expire = now + timedelta(days=settings.refresh_token_expire_days)
+    jti = str(uuid.uuid4())
     payload = {
         "sub": subject,
-        "jti": str(uuid.uuid4()),
+        "jti": jti,
         "iat": int(now.timestamp()),
         "exp": expire,
         "type": "refresh",
     }
-    return jwt.encode(
+    token = jwt.encode(
         payload, settings.jwt_refresh_secret_key, algorithm=settings.jwt_algorithm
     )
+    return token, jti
 
 
 def decode_token(token: str, token_type: str = "access") -> dict | None:
@@ -47,5 +54,5 @@ def decode_token(token: str, token_type: str = "access") -> dict | None:
         if payload.get("type") != token_type:
             return None
         return payload
-    except JWTError:
+    except InvalidTokenError:
         return None
