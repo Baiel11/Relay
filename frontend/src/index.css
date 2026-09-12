@@ -1,0 +1,71 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-[#050505] text-[#e0e0e0] antialiased font-sans selection:bg-white selection:text-black overflow-hidden;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+}
+
+/* Minimalist Dark Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-track {
+  background: #090909;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #222225;
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #333338;
+}
+
+/* OLED Pure Dark Card & Inputs (matching Cosmos design) */
+.cosmos-card {
+  background: #0d0d0f;
+  border: 1px solid #1c1c21;
+  box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.8);
+}
+
+.cosmos-input {
+  background: #141417;
+  border: 1px solid #222228;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.cosmos-input:focus {
+  border-color: #44444e;
+  background: #18181c;
+  outline: none;
+}
+
+.cosmos-input::placeholder {
+  color: #555560;
+}
+
+.cosmos-input:-webkit-autofill,
+.cosmos-input:-webkit-autofill:hover, 
+.cosmos-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #ffffff;
+  -webkit-box-shadow: 0 0 0px 1000px #141417 inset;
+  transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Subtle Star Field / Ambient Background */
+
+.space-bg {
+  background-color: #050505;
+  background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 32px 32px;
+}
