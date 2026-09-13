@@ -1,16 +1,17 @@
+import uuid
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.exceptions import AppException
+from app.core.security import decode_token
 from app.repositories.user import UserRepository
-from app.services.auth import AuthService
 from app.services.connection_manager import connection_manager
 from app.services.websocket_handler import WebSocketHandler
 
 router = APIRouter()
 
 CLOSE_UNAUTHORIZED = 4401
+
 
 
 def get_websocket_handler(db: AsyncSession = Depends(get_db)) -> WebSocketHandler:
@@ -29,13 +30,32 @@ async def websocket_endpoint(
         return
 
     try:
-        user = await AuthService(UserRepository(db)).get_current_user(token)
-    except AppException:
+        payload = decode_token(token, token_type="access")
+        if payload is None:
+            await websocket.close(code=CLOSE_UNAUTHORIZED)
+            return
+
+        raw_id = payload.get("sub")
+        user_id = uuid.UUID(str(raw_id))
+        user = await UserRepository(db).get_by_id(user_id)
+        if user is None or not user.is_active:
+            await websocket.close(code=CLOSE_UNAUTHORIZED)
+            return
+    except Exception:
         await websocket.close(code=CLOSE_UNAUTHORIZED)
         return
 
+
+
     await websocket.accept()
     await connection_manager.connect(user.id, websocket)
+
+    # Send initial snapshot of currently connected users
+    online_uids = await connection_manager.get_online_user_ids()
+    await websocket.send_json({
+        "type": "presence_sync",
+        "data": {"online_user_ids": [str(uid) for uid in online_uids]},
+    })
 
     try:
         while True:
