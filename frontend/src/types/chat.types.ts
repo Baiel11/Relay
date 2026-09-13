@@ -8,7 +8,9 @@ export interface Conversation {
   other_user?: User;
   last_message?: Message;
   unread_count?: number;
+  is_online?: boolean;
 }
+
 
 export interface Message {
   id: string;
