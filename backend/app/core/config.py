@@ -1,5 +1,5 @@
 from functools import lru_cache
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,6 +7,8 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
     database_url: str
+    redis_url: str = "redis://localhost:6379/0"
+
 
     jwt_secret_key: str
     jwt_refresh_secret_key: str
@@ -16,7 +18,7 @@ class Settings(BaseSettings):
 
     refresh_cookie_name: str = "refresh_token"
     refresh_cookie_path: str = "/api/v1/auth"
-    cookie_samesite: str = "lax"
+    cookie_samesite: Literal["lax", "strict", "none"] = "lax"
     cookie_secure: bool = False
 
     cors_origins: Annotated[list[str], Field(default_factory=list)] = [
