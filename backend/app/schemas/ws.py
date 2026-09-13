@@ -11,7 +11,7 @@ class WSPing(BaseModel):
 class WSMessageSend(BaseModel):
     type: Literal["send_message"]
     conversation_id: uuid.UUID
-    content: str = Field(min_length=1, max_length=4000)
+    content: str = Field(min_length=1, max_length=20000)
     client_message_id: uuid.UUID | None = None
 
 
@@ -26,3 +26,14 @@ class WSSync(BaseModel):
     conversation_id: uuid.UUID
     after_message_id: uuid.UUID | None = None
     limit: int = Field(default=50, ge=1, le=200)
+
+
+class WSTyping(BaseModel):
+    type: Literal["typing"]
+    conversation_id: uuid.UUID
+    is_typing: bool
+
+
+class WSMarkRead(BaseModel):
+    type: Literal["mark_read"]
+    conversation_id: uuid.UUID
