@@ -9,8 +9,10 @@ from app.core.deps import get_current_user
 from app.models.user import User
 from app.repositories.message import MessageRepository
 from app.schemas.message import MessageCreate, MessageListResponse, MessageResponse
+from app.services.connection_manager import connection_manager
 from app.services.conversation import ConversationService
 from app.services.message import MessageService
+from app.services.redis.unread import unread_service
 
 router = APIRouter(
     prefix="/conversations/{conversation_id}/messages", tags=["messages"]
@@ -30,7 +32,7 @@ async def send_message(
     conversation_service: ConversationService = Depends(get_conversation_service),
     message_service: MessageService = Depends(get_message_service),
 ):
-    await conversation_service.get_for_user(conversation_id, current_user.id)
+    conversation = await conversation_service.get_for_user(conversation_id, current_user.id)
     message, created = await message_service.send_message(
         conversation_id,
         current_user.id,
@@ -38,6 +40,36 @@ async def send_message(
         body.client_message_id,
     )
     response.status_code = status.HTTP_201_CREATED if created else status.HTTP_200_OK
+
+    if created:
+        payload = MessageResponse.model_validate(message).model_dump(mode="json")
+        await connection_manager.send_to_subscribers(
+            conversation_id,
+            {"type": "message", "data": payload},
+            exclude_user_id=current_user.id,
+        )
+        recipient_id = (
+            conversation.participant_b
+            if conversation.participant_a == current_user.id
+            else conversation.participant_a
+        )
+        await connection_manager.send_to_user_non_subscribed(
+            recipient_id,
+            conversation_id,
+            {"type": "message", "data": payload},
+        )
+        unread_count = await unread_service.increment_unread(recipient_id, conversation_id)
+        await connection_manager.send_to_user(
+            recipient_id,
+            {
+                "type": "unread_update",
+                "data": {
+                    "conversation_id": str(conversation_id),
+                    "unread_count": unread_count,
+                },
+            },
+        )
+
     return message
 
 
