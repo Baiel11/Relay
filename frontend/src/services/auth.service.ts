@@ -27,12 +27,14 @@ export const authService = {
   },
 
   async searchUsers(query: string): Promise<User[]> {
-    const response = await api.get<{ items: User[] }>(`/users/search?q=${encodeURIComponent(query)}`);
-    return response.data.items;
+    const response = await api.get<{ results: User[] }>(`/users/search?q=${encodeURIComponent(query)}`);
+    return response.data.results;
   },
 
-  async refreshToken(): Promise<{ data: LoginResponse }> {
-    return await api.post<LoginResponse>('/auth/refresh', {});
+
+  async refreshToken(): Promise<LoginResponse> {
+    const response = await api.post<LoginResponse>('/auth/refresh', {});
+    return response.data;
   }
 };
 
