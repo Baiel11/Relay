@@ -32,4 +32,4 @@ class Conversation(Base):
 
     @staticmethod
     def normalize_pair(user_a: uuid.UUID, user_b: uuid.UUID) -> tuple[uuid.UUID, uuid.UUID]:
-        return tuple(sorted((user_a, user_b)))
+        return (user_a, user_b) if user_a < user_b else (user_b, user_a)
