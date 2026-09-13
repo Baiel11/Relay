@@ -5,6 +5,7 @@ import { chatService } from '../services/chat.service';
 import { ChatSidebar } from '../components/chat/ChatSidebar';
 import { ChatArea } from '../components/chat/ChatArea';
 import { SearchModal } from '../components/chat/SearchModal';
+import { useWebSocket } from '../hooks/useWebSocket';
 import type { User } from '../types/auth.types';
 
 export const ChatPage: React.FC = () => {
@@ -12,15 +13,33 @@ export const ChatPage: React.FC = () => {
   const { conversations, activeConversation, setConversations, setActiveConversation } =
     useChatStore();
 
+  useWebSocket(); // Activate real-time duplex socket transport
+
   const [isSearchOpen, setIsSearchOpen] = useState(false);
 
+
   useEffect(() => {
+    if (!user) return;
+
+    let isMounted = true;
     const loadConversations = async () => {
       try {
         const data = await chatService.getConversations();
-        setConversations(data.items);
-        if (data.items.length > 0 && !activeConversation) {
-          setActiveConversation(data.items[0]);
+        if (!isMounted) return;
+        const items = Array.isArray(data?.items) ? data.items : [];
+        setConversations(items);
+
+        // Ensure activeConversation belongs to current user's conversation list
+        const currentActive = useChatStore.getState().activeConversation;
+        const activeBelongsToUser = currentActive && items.some((c) => c.id === currentActive.id);
+
+        if (activeBelongsToUser) {
+          const fresh = items.find((c) => c.id === currentActive.id);
+          if (fresh) setActiveConversation(fresh);
+        } else if (items.length > 0) {
+          setActiveConversation(items[0]);
+        } else {
+          setActiveConversation(null);
         }
       } catch (err) {
         console.error('Failed to load conversations:', err);
@@ -28,7 +47,10 @@ export const ChatPage: React.FC = () => {
     };
 
     loadConversations();
-  }, []);
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id, setConversations, setActiveConversation]);
 
   const handleSelectUserFromSearch = async (targetUser: User) => {
     try {
@@ -36,8 +58,9 @@ export const ChatPage: React.FC = () => {
       conv.other_user = targetUser;
 
       // Add to conversations list if not present
-      if (!conversations.some((c) => c.id === conv.id)) {
-        setConversations([conv, ...conversations]);
+      const currentConvs = useChatStore.getState().conversations;
+      if (!currentConvs.some((c) => c.id === conv.id)) {
+        setConversations([conv, ...currentConvs]);
       }
       setActiveConversation(conv);
     } catch (err) {
