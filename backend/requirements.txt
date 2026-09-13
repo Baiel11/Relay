@@ -8,17 +8,15 @@ sqlalchemy[asyncio]==2.0.41
 asyncpg==0.30.0
 alembic==1.15.2
 
-# Redis
-redis[hiredis]==6.2.0
-
-# Auth
-python-jose[cryptography]==3.4.0
-passlib[bcrypt]==1.7.4
-bcrypt==4.3.0
+# Auth — PyJWT replaces unmaintained python-jose; argon2-cffi for OWASP-recommended hashing
+PyJWT[crypto]==2.10.1
+argon2-cffi==23.1.0
 
 # Validation
 pydantic[email]==2.11.3
 pydantic-settings==2.9.1
 
-# Utilities
-python-dotenv==1.1.0
+# Redis & Cache
+redis>=5.2.0
+fakeredis[lua]>=2.26.0
+
