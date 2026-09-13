@@ -1,0 +1,14 @@
+name: relay-frontend
+
+services:
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    environment:
+      API_UPSTREAM: host.docker.internal:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
