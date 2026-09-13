@@ -55,3 +55,11 @@ async def client(session_factory):
 async def session(session_factory):
     async with session_factory() as s:
         yield s
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def bypass_rate_limiter():
+    from unittest.mock import AsyncMock, patch
+    with patch("app.services.redis.rate_limiter.rate_limiter.check_rate_limit", new_callable=AsyncMock) as m:
+        m.return_value = True
+        yield m

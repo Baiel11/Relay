@@ -120,3 +120,23 @@ async def test_search_pagination_second_page(client):
     body = resp.json()
     assert len(body["results"]) == 2
     assert body["total"] == 5
+
+
+async def test_search_prefix_and_alphabetical_order(client):
+    # test_user contains 'u', but user1, user2 start with 'u'
+    await register(client, "test_user@example.com", "test_user")
+    await register(client, "user2@example.com", "user2")
+    await register(client, "user1@example.com", "user1")
+    token = await login(client, "test_user@example.com")
+
+    # Single-letter "u" should match only users starting with "u", sorted alphabetically
+    resp = await client.get(
+        SEARCH_URL,
+        params={"q": "u"},
+        headers={"Authorization": f"Bearer {token}"},
+    )
+    assert resp.status_code == 200
+    results = resp.json()["results"]
+    usernames = [u["username"] for u in results]
+    assert usernames == ["user1", "user2"]
+    assert "test_user" not in usernames
