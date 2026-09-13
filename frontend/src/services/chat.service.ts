@@ -8,9 +8,10 @@ export const chatService = {
   },
 
   async createConversation(userId: string): Promise<Conversation> {
-    const response = await api.post<Conversation>('/conversations', { user_id: userId });
+    const response = await api.post<Conversation>('/conversations', { other_user_id: userId });
     return response.data;
   },
+
 
   async getMessages(conversationId: string, limit = 50, offset = 0): Promise<PagedResult<Message>> {
     const response = await api.get<PagedResult<Message>>(
