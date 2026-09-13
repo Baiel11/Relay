@@ -6,9 +6,12 @@ from app.core.exceptions import BadRequestException, ForbiddenException, NotFoun
 from app.models.conversation import Conversation
 from app.repositories import PagedResult
 from app.repositories.conversation import ConversationRepository
+from app.repositories.conversation_read import ConversationReadRepository
 from app.repositories.user import UserRepository
 from app.schemas.conversation import ConversationListResponse, ConversationResponse
 from app.schemas.user import UserBrief
+from app.services.redis.presence import presence_service
+from app.services.redis.unread import unread_service
 
 
 class ConversationService:
@@ -16,9 +19,11 @@ class ConversationService:
         self,
         conversation_repo: ConversationRepository,
         user_repo: UserRepository,
+        read_repo: ConversationReadRepository | None = None,
     ):
         self.conversation_repo = conversation_repo
         self.user_repo = user_repo
+        self.read_repo = read_repo or ConversationReadRepository(conversation_repo.db)
 
 
     async def get_or_create(
@@ -87,8 +92,19 @@ class ConversationService:
             else conversation.participant_a
         )
         other = await self.user_repo.get_by_id(other_id)
+
+        is_online = await presence_service.is_online(other_id)
+
+        unread_count = await unread_service.get_unread(
+            current_user_id,
+            conversation.id,
+            db_fallback=lambda: self.read_repo.count_unread(current_user_id, conversation.id),
+        )
+
         return ConversationResponse(
             id=conversation.id,
             other_user=UserBrief.model_validate(other),
             created_at=conversation.created_at,
+            unread_count=unread_count,
+            is_online=is_online,
         )
