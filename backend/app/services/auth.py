@@ -127,16 +127,20 @@ class AuthService:
         return new_access_token, new_refresh_token
 
 
-    async def logout(self, refresh_token: str) -> None:
-        """Revoke a single refresh token server-side."""
+    async def logout(self, refresh_token: str) -> uuid.UUID | None:
+        """Revoke a single refresh token server-side and return user_id."""
         payload = decode_token(refresh_token, token_type="refresh")
         if payload is None:
-            # Token is already expired/invalid — nothing to revoke, that's fine
-            return
+            return None
 
         jti = payload.get("jti")
         if jti:
             await self.token_repo.revoke(jti)
+
+        try:
+            return self._parse_user_id(payload)
+        except UnauthorizedException:
+            return None
 
 
     async def logout_all(self, user_id: uuid.UUID) -> None:
