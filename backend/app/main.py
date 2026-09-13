@@ -20,20 +20,27 @@ from app.core.exceptions import (
     http_exception_handler,
     validation_exception_handler,
 )
+from app.core.redis import close_redis
+from app.services.redis.pubsub import pubsub_manager
 
 settings = get_settings()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    # Startup: Start Redis Pub/Sub listener background task
+    await pubsub_manager.start_listener()
     yield
+    # Shutdown: Stop and await listener task, dispose Redis and DB pools
+    await pubsub_manager.stop_listener()
+    await close_redis()
     await engine.dispose()
+
 
 
 app = FastAPI(
     title=settings.app_name,
     lifespan=lifespan,
-    # Hide docs in production
     docs_url="/api/docs" if settings.debug else None,
     redoc_url="/api/redoc" if settings.debug else None,
     openapi_url="/api/openapi.json" if settings.debug else None,
@@ -43,7 +50,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.cors_origins,
-    allow_credentials=True,  # Required for HttpOnly refresh-token cookies
+    allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
