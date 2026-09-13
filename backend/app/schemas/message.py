@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field
 
 
 class MessageCreate(BaseModel):
-    content: str = Field(min_length=1, max_length=4000)
+    content: str = Field(min_length=1, max_length=20000)
     client_message_id: uuid.UUID | None = None
 
 
