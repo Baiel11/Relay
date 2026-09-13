@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { User } from '../types/auth.types';
 import { authService } from '../services/auth.service';
+import { websocketService } from '../services/websocket.service';
+import { useChatStore } from './useChatStore';
 
 interface AuthState {
   user: User | null;
@@ -25,15 +27,24 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   setUser: (user) => set({ user }),
 
-  login: (token, user) =>
+  login: (token, user) => {
+    // Wipe previous user chat cache before setting new user session
+    useChatStore.getState().reset();
     set({
       accessToken: token,
       user,
       isAuthenticated: true,
       isLoading: false,
-    }),
+    });
+  },
 
   logout: async () => {
+    // 1. Immediately drop WebSocket to broadcast offline status
+    websocketService.disconnect();
+
+    // 2. Wipe in-memory chat cache immediately so previous messages/conversations vanish
+    useChatStore.getState().reset();
+
     try {
       await authService.logout();
     } catch {
@@ -53,12 +64,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       // First attempt to refresh token via HttpOnly cookie if access token isn't in memory
       if (!useAuthStore.getState().accessToken) {
-        const { data } = await authService.refreshToken();
-        set({ accessToken: data.access_token });
+        const data = await authService.refreshToken();
+        if (data?.access_token) {
+          set({ accessToken: data.access_token, isAuthenticated: true });
+        }
       }
       const user = await authService.getCurrentUser();
       set({ user, isAuthenticated: true, isLoading: false });
     } catch {
+      useChatStore.getState().reset();
       set({ user: null, accessToken: null, isAuthenticated: false, isLoading: false });
     }
   },
