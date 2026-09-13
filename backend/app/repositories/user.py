@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import case, func, or_, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.user import User
@@ -32,10 +32,32 @@ class UserRepository:
     async def search(
         self, query: str, limit: int = 20, offset: int = 0
     ) -> PagedResult[User]:
-        pattern = f"%{query}%"
-        where = or_(
-            User.username.ilike(pattern),
-            User.email.ilike(pattern),
+        clean_q = query.strip()
+        if not clean_q:
+            return PagedResult(items=[], total=0)
+
+        prefix_pattern = f"{clean_q}%"
+        substr_pattern = f"%{clean_q}%"
+
+        if len(clean_q) == 1:
+            where = or_(
+                User.username.ilike(prefix_pattern),
+                User.email.ilike(prefix_pattern),
+            )
+        else:
+            where = or_(
+                User.username.ilike(prefix_pattern),
+                User.email.ilike(prefix_pattern),
+                User.username.ilike(substr_pattern),
+                User.email.ilike(substr_pattern),
+            )
+
+
+        prefix_rank = case(
+            (User.username.ilike(prefix_pattern), 0),
+            (User.email.ilike(prefix_pattern), 1),
+            (User.username.ilike(substr_pattern), 2),
+            else_=3,
         )
 
         count_result = await self.db.execute(
@@ -44,7 +66,11 @@ class UserRepository:
         total = count_result.scalar_one()
 
         items_result = await self.db.execute(
-            select(User).where(where).order_by(User.username).limit(limit).offset(offset)
+            select(User)
+            .where(where)
+            .order_by(prefix_rank, User.username.asc())
+            .limit(limit)
+            .offset(offset)
         )
         items = list(items_result.scalars().all())
 
