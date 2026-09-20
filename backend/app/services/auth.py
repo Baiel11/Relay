@@ -44,22 +44,6 @@ class AuthService:
         )
 
 
-    async def get_current_user(self, token: str) -> User:
-        """Validate an access token and return the owning user."""
-        payload = decode_token(token, token_type="access")
-        if payload is None:
-            raise UnauthorizedException(detail="Invalid or expired token")
-
-        user_id = self._parse_user_id(payload)
-        user = await self.user_repo.get_by_id(user_id)
-        if user is None:
-            raise UnauthorizedException(detail="User not found")
-        if not user.is_active:
-            raise UnauthorizedException(detail="User account is inactive")
-
-        return user
-
-
     async def register(self, email: str, username: str, password: str) -> User:
         existing = await self.user_repo.get_by_email_or_username(email, username)
         if existing:
